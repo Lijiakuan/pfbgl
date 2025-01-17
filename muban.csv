@@ -1,0 +1,4 @@
+姓名,性别,出生日期,年龄,联系方式,地址,身高 (cm),体重 (kg),医保类型,照顾状况,个人月收入,能否正常配合调查,皮肤病名称,皮肤病史,老年瘙痒症相关疾病,慢性病,患者id,抗生素名称,止疼药名称,抗癌药名称,抗抑郁药名称,皮肤病用药名称,用药日期
+name,gender,birth_date,age,contact,address,height,weight,insurance_type,care_status,monthly_income,cooperation,skin_disease_name,skin_disease_history,elderly_itch_related_disease,chronic_disease,patient_id,antibiotic_name,painkiller_name,anticancer_name,antidepressant_name,skin_disease_medication,medication_date
+张三,男,1980/1/1,43,13800138000,北京市,175,70,城镇居民医疗保险,与子女同住,5000-10000,是,银屑病,有银屑病史,糖尿病,高血压,1,阿莫西林,对乙酰氨基酚,无,无,,2023/10/1
+李四,女,1975/5/15,48,13900139000,上海市,165,60,商业保险,独居,≥10000,否,牛皮癣,有牛皮癣史,支气管哮喘,冠心病,2,青霉素,布洛芬,无,无,,2023/10/2

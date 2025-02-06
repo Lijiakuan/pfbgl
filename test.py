@@ -188,7 +188,7 @@ def add_patient():
         if submit_button:
             conn = get_db_connection()
             conn.execute('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease,care_provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                         (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease)))
+                         (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease),care_provider))
             conn.commit()
             conn.close()
             st.success("患者信息添加成功！")

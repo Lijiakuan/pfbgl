@@ -16,6 +16,17 @@ st.image("hzban.png")
 # Sidebar for navigation
 st.sidebar.title("菜单导航")
 app_mode = st.sidebar.selectbox("请选择", ["添加患者", "导入患者数据", "患者及用药情况","患者信息查询"])
+
+# import os
+# # 设置环境变量以确保正确加载资源
+# os.environ['STREAMLIT_AGGRID_URL'] = './st_aggrid/frontend/build'
+# # 设置环境变量，强制使用本地资源
+# os.environ["STREAMLIT_BROWSER_GATHER_USAGE_STATS"] = "false"
+# # 设置基础路径
+# os.environ["STREAMLIT_STATIC_PATH"] = os.path.join(os.path.dirname(__file__), "streamlit/static")
+# os.environ["STREAMLIT_COMPONENTS_PATH"] = os.path.join(os.path.dirname(__file__), "st_aggrid/frontend/build")
+
+
 @st.cache_resource
 def create_database():
     conn = sqlite3.connect('patients.db')
@@ -34,10 +45,12 @@ def create_database():
             care_status TEXT ,
             monthly_income TEXT ,
             cooperation TEXT ,
+            is_chronic_disease TEXT ,
             skin_disease_name TEXT ,
             skin_disease_history TEXT ,
             elderly_itch_related_disease TEXT,
-            chronic_disease TEXT 
+            chronic_disease TEXT ,
+            care_provider TEXT DEFAULT NULL
         )
     ''')
     conn.execute('''
@@ -79,19 +92,20 @@ def generate_test_data(num_records=10):
         care_status = random.choice(["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他"])
         monthly_income = random.choice(["≤3000", "3000-5000", "5000-10000", "≥10000"])
         cooperation = random.choice(["是", "否"])
+        is_chronic_disease = random.choice(["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染"])
         skin_disease_name = fake.word()
         skin_disease_history = fake.sentence()
         elderly_itch_related_disease = random.choice(["支气管哮喘", "糖尿病", "肝病", "肾功能不全", "其他"])
         chronic_disease = random.sample(["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他"], random.randint(1, 3))
-        
-        test_data.append((name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease)))
+        care_provider = fake.name()
+        test_data.append((name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease),care_provider))
     return test_data
 
 # Function to import test data
 # def import_test_data():
 #     test_data = generate_test_data()
 #     conn = get_db_connection()
-#     conn.executemany('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', test_data)
+#     conn.executemany('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', test_data)
 #     conn.commit()
 #     conn.close()
 #     st.success("测试数据导入成功！")
@@ -106,7 +120,7 @@ def import_combined_data():
             data = pd.read_excel(uploaded_file, skiprows=1)
 
         # Ensure the required columns are present
-        required_patient_columns = ["name", "gender", "birth_date", "age", "contact", "address", "height", "weight", "insurance_type", "care_status", "monthly_income", "cooperation", "skin_disease_name", "skin_disease_history", "elderly_itch_related_disease", "chronic_disease"]
+        required_patient_columns = ["name", "gender", "birth_date", "age", "contact", "address", "height", "weight", "insurance_type", "care_status", "monthly_income", "cooperation", "is_chronic_disease","skin_disease_name", "skin_disease_history", "elderly_itch_related_disease", "chronic_disease","care_provider"]
         required_medication_columns = ["patient_id", "antibiotic_name", "painkiller_name", "anticancer_name", "antidepressant_name", "skin_disease_medication", "medication_date"]
 
         # if not all(column in data.columns for column in required_patient_columns):
@@ -157,43 +171,45 @@ def add_patient():
             contact = st.text_input("联系方式", max_chars=11)  # Limit to 11 characters
             address = st.text_area("地址")
             skin_disease_name = st.text_input("皮肤病名称")
-            elderly_itch_related_disease = st.selectbox("老年瘙痒症相关疾病", ["支气管哮喘", "糖尿病", "肝病", "肾功能不全", "其他"])
+            is_chronic_disease = st.selectbox("患自身免疫性疾病", ["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染",""])  
+            elderly_itch_related_disease = st.selectbox("老年瘙痒症相关疾病", ["支气管哮喘", "糖尿病", "肝病", "肾功能不全", "其他",""])
+            care_provider = st.text_input("保健人员名")
         with col2:
             height = st.number_input("身高 (cm)", min_value=0.0)
             weight = st.number_input("体重 (kg)", min_value=0.0)
-            insurance_type = st.selectbox("医保类型", ["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他"])
-            care_status = st.selectbox("照顾状况", ["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他"])
-            monthly_income = st.selectbox("个人月收入", ["≤3000", "3000-5000", "5000-10000", "≥10000"])
-            cooperation = st.selectbox("能否正常配合调查", ["是", "否"])            
+            insurance_type = st.selectbox("医保类型", ["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他",""])
+            care_status = st.selectbox("照顾状况", ["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他",""])
+            monthly_income = st.selectbox("个人月收入", ["≤3000", "3000-5000", "5000-10000", "≥10000",""])
+            cooperation = st.selectbox("能否正常配合调查", ["是", "否",""])            
             skin_disease_history = st.text_area("皮肤病史")            
-            chronic_disease = st.multiselect("慢性病", ["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他"])
+            chronic_disease = st.multiselect("慢性病", ["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他",""])
 
         submit_button = st.form_submit_button("添加患者")
         if submit_button:
             conn = get_db_connection()
-            conn.execute('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                         (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease)))
+            conn.execute('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease,care_provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                         (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease)))
             conn.commit()
             conn.close()
             st.success("患者信息添加成功！")
 
 # Function to import patient data from CSV or Excel
-def import_patient_data():
-    st.subheader("导入患者数据")
-    uploaded_file = st.file_uploader("选择一个CSV或Excel文件", type=["csv", "xlsx"])
-    if uploaded_file is not None:
-        if uploaded_file.name.endswith('.csv'):
-            data = pd.read_csv(uploaded_file)
-        else:
-            data = pd.read_excel(uploaded_file)
+# def import_patient_data():
+#     st.subheader("导入患者数据")
+#     uploaded_file = st.file_uploader("选择一个CSV或Excel文件", type=["csv", "xlsx"])
+#     if uploaded_file is not None:
+#         if uploaded_file.name.endswith('.csv'):
+#             data = pd.read_csv(uploaded_file)
+#         else:
+#             data = pd.read_excel(uploaded_file)
 
-        for index, row in data.iterrows():
-            conn = get_db_connection()
-            conn.execute('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-                         (row['name'], row['gender'], row['birth_date'], row['age'], row['contact'], row['address'], row['height'], row['weight'], row['insurance_type'], row['care_status'], row['monthly_income'], row['cooperation'], row['skin_disease_name'], row['skin_disease_history'], row['elderly_itch_related_disease'], row['chronic_disease']))
-            conn.commit()
-            conn.close()
-        st.success("患者数据导入成功！")
+#         for index, row in data.iterrows():
+#             conn = get_db_connection()
+#             conn.execute('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+#                          (row['name'], row['gender'], row['birth_date'], row['age'], row['contact'], row['address'], row['height'], row['weight'], row['insurance_type'], row['care_status'], row['monthly_income'], row['cooperation'], row['skin_disease_name'], row['skin_disease_history'], row['elderly_itch_related_disease'], row['chronic_disease']))
+#             conn.commit()
+#             conn.close()
+#         st.success("患者数据导入成功！")
 
 # Function to edit patient information
 def edit_patient():
@@ -215,19 +231,22 @@ def edit_patient():
             address = st.text_area("地址", value=patient_data['address'].item())
             height = st.number_input("身高 (cm)", min_value=0, value=int(patient_data['height'].item()))
             weight = st.number_input("体重 (kg)", min_value=0, value=int(patient_data['weight'].item()))
-            insurance_type = st.selectbox("医保类型", ["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他"], index=["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他"].index(patient_data['insurance_type'].item()))
-            care_status = st.selectbox("照顾状况", ["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他"], index=["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他"].index(patient_data['care_status'].item()))
-            monthly_income = st.selectbox("个人月收入", ["≤3000", "3000-5000", "5000-10000", "≥10000"], index=["≤3000", "3000-5000", "5000-10000", "≥10000"].index(patient_data['monthly_income'].item()))
+            insurance_type = st.selectbox("医保类型", ["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他",""], index=["城镇居民医疗保险", "公费医疗", "新农合", "商业保险", "军队优惠医疗", "自费", "其他",""].index(patient_data['insurance_type'].item()))
+            care_status = st.selectbox("照顾状况", ["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他",""], index=["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他",""].index(patient_data['care_status'].item()))
+            monthly_income = st.selectbox("个人月收入", ["≤3000", "3000-5000", "5000-10000", "≥10000",""], index=["≤3000", "3000-5000", "5000-10000", "≥10000",""].index(patient_data['monthly_income'].item()))
             cooperation = st.selectbox("能否正常配合调查", ["是", "否"], index=0 if patient_data['cooperation'].item() == "是" else 1)
+            is_chronic_disease = st.selectbox("患自身免疫性疾病",["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染",""], index=["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染",""].index(patient_data['is_chronic_disease'].item()))
+            # is_chronic_disease = st.selectbox("是否患有自身免疫性疾病", ["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染"])
             skin_disease_name = st.text_input("皮肤病名称", value=patient_data['skin_disease_name'].item())
             skin_disease_history = st.text_area("皮肤病史", value=patient_data['skin_disease_history'].item())
             elderly_itch_related_disease = st.text_input("老年瘙痒症相关疾病", value=patient_data['elderly_itch_related_disease'].item())
-            chronic_disease = st.multiselect("慢性病", ["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他"], default=patient_data['chronic_disease'].item().split(','))
+            chronic_disease = st.multiselect("慢性病", ["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他",""], default=patient_data['chronic_disease'].item().split(','))
+            care_provider = st.text_input("保健人员名", value=patient_data['care_provider'].item()) 
             submit_button = st.form_submit_button("更新患者")
             if submit_button:
                 conn = get_db_connection()
-                conn.execute('''UPDATE patients SET name=?, gender=?, birth_date=?, age=?, contact=?, address=?, height=?, weight=?, insurance_type=?, care_status=?, monthly_income=?, cooperation=?, skin_disease_name=?, skin_disease_history=?, elderly_itch_related_disease=?, chronic_disease=? WHERE id=?''',
-                             (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease), patient_id))
+                conn.execute('''UPDATE patients SET name=?, gender=?, birth_date=?, age=?, contact=?, address=?, height=?, weight=?, insurance_type=?, care_status=?, monthly_income=?, cooperation=?,is_chronic_disease =?, skin_disease_name=?, skin_disease_history=?, elderly_itch_related_disease=?, chronic_disease=? ,care_provider=? WHERE id=?''',
+                             (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation,is_chronic_disease, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease),care_provider, patient_id))
                 conn.commit()
                 conn.close()
                 st.success("患者信息更新成功！")
@@ -299,14 +318,20 @@ def display_patients():
         gb.configure_column("care_status", header_name="照顾状况")
         gb.configure_column("monthly_income", header_name="个人月收入")
         gb.configure_column("cooperation", header_name="能否正常配合调查")
+        gb.configure_column("is_chronic_disease", header_name="患自身免疫性疾病")
         gb.configure_column("skin_disease_name", header_name="皮肤病名称")
         gb.configure_column("skin_disease_history", header_name="皮肤病史")
         gb.configure_column("elderly_itch_related_disease", header_name="老年瘙痒症相关疾病")
         gb.configure_column("chronic_disease", header_name="慢性病")
+        gb.configure_column("care_provider", header_name="保健人员名") 
 
         gridOptions = gb.build()
-
-        response = AgGrid(
+        @st.cache_resource
+        def load_aggrid():
+            return AgGrid
+        
+        
+        response = load_aggrid()(
             df_page,
             gridOptions=gridOptions,
             enable_enterprise_modules=True,
@@ -410,8 +435,10 @@ def display_medications(patient_id,medications_container):
             gb.configure_column("medication_date", header_name="用药日期")
             
             gridOptions = gb.build()
-
-            response1 = AgGrid(
+            @st.cache_resource
+            def load_aggrid():
+                return AgGrid
+            response1 = load_aggrid()(
                 df,
                 gridOptions=gridOptions,
                 enable_enterprise_modules=True,
@@ -521,10 +548,12 @@ def query_patient_medication():
         p.care_status AS 照顾状况,
         p.monthly_income AS 个人月收入,
         p.cooperation AS 能否正常配合调查,
+        p.is_chronic_disease as 患自身免疫性疾病,
         p.skin_disease_name AS 皮肤病名称,
         p.skin_disease_history AS 皮肤病史,
         p.elderly_itch_related_disease AS 老年瘙痒症相关疾病,
         p.chronic_disease AS 慢性病,
+        p.care_provider AS 保健人员名,
         m.id AS 用药记录ID,
         m.antibiotic_name AS 抗生素名称,
         m.painkiller_name AS 止痛药名称,

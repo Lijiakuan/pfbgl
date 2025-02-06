@@ -397,6 +397,7 @@ def display_patients():
             time.sleep(3)
             st.session_state.show_medications = False
             st.session_state.display_patient = False
+            st.session_state.show_edit_medication = False
             
         # Display medications if requested
     if st.session_state.show_medications and st.session_state.selected_patient_id:

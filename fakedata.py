@@ -27,12 +27,13 @@ def generate_test_data(num_records=10):
         care_status = random.choice(["与老伴同住", "与子女同住", "与保姆同住", "独居", "养老院", "其他"])
         monthly_income = random.choice(["≤3000", "3000-5000", "5000-10000", "≥10000"])
         cooperation = random.choice(["是", "否"])
+        is_chronic_disease = random.choice(["白癜风", "斑秃", "类风湿", "系统性红斑狼疮", "炎症性肠病", "幽门螺旋菌感染"])
         skin_disease_name = fake.word()
         skin_disease_history = fake.sentence()
         elderly_itch_related_disease = random.choice(["支气管哮喘", "糖尿病", "肝病", "肾功能不全", "其他"])
         chronic_disease = random.sample(["高血压", "冠心病", "脑卒中", "焦虑症", "抑郁症", "老年阿尔茨海默症", "帕金森", "哮喘", "其他"], random.randint(1, 3))
-        
-        test_data.append((name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease)))
+        care_provider = fake.name()
+        test_data.append((name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation ,is_chronic_disease, skin_disease_name, skin_disease_history, elderly_itch_related_disease, ','.join(chronic_disease),care_provider))
     return test_data
 
 def generate_test_medications(num_records=10):
@@ -56,7 +57,7 @@ def import_test_data():
     conn = get_db_connection()
     
     # Insert patient data
-    conn.executemany('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', test_data)
+    conn.executemany('''INSERT INTO patients (name, gender, birth_date, age, contact, address, height, weight, insurance_type, care_status, monthly_income, cooperation, is_chronic_disease,skin_disease_name, skin_disease_history, elderly_itch_related_disease, chronic_disease,care_provider) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', test_data)
     
     # Insert medication data
     conn.executemany('''INSERT INTO medications (patient_id, antibiotic_name, painkiller_name, anticancer_name, antidepressant_name, skin_disease_medication, medication_date) VALUES (?, ?, ?, ?, ?, ?, ?)''', medications_data)

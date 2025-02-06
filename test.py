@@ -390,8 +390,8 @@ def display_patients():
                     st.session_state.show_medications = True
                     st.session_state.selected_patient_id = patient_id
 
-            # else:
-            #     st.write("选中的行数据格式不正确。")
+            else:
+                st.session_state.selected_patient_id = 0
         else:
             st.write("请选择一行进行操作。")
             time.sleep(3)
